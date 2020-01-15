@@ -23,6 +23,10 @@ csz = int(log2(asz))# Character symbol size
 tsz = 8             # Turing Tape size
 ssz = 4             # State size (Halt is all 1 state, Initial state is all 0)
 
+# fsm = ql.Unitary('u_fsm', [ complex(0.0, 0.0), complex(1.0, 0.0),
+#                             complex(1.0, 0.0), complex(0.0, 0.0)])                # specify unitary matrix
+# fsm.decompose()                                                                # decompose
+    
 t_now = csz             # Read-Write Tape character
 # h_now = log2(tsz)     # Head position (Binary coded)
 h_now = tsz             # Head position (1-Hot coded)
@@ -58,16 +62,19 @@ k.gate('x', [qbi[3]])
 for i in range(qbi[4], qbi[5]):
     k.gate('h', [i])
 
+          
+
 # 2. Run machine for n-iterations:
 for tick in range(0, sim_tick):
     # [{R Head}] = Toffoli [{Head Position}, {Turing Tape}]
     for i in range(0,tsz):
         for j in range(0,csz):
             k.gate('toffoli', [qbi[0] + i*csz + j, qbi[2] + i , qbi[1] + j])
-    # [{W Head}, {Machine State}, {Move}, {Halt}] = U_fsm [{R Head}, {Machine State}, {FSM}]
-
+    # [{W Head}, {Machine State}, {Move}] = U_fsm [{R Head}, {Machine State}, {FSM}]
+    # k.gate(fsm, [q_rw, q_hp, q_cs, q_sm])  
     # [{Head Position}, {Error}] = U_move [{Head Position}, {Move}]
-    # [{Turing Tape}] = = U_write [{Head Position}, {W Head}]
+    # Currently ignore: let Head position under/overflow. Trim bits
+    # [{Turing Tape}] = U_write [{Head Position}, {W Head}]
 
 # 3. Amplify target sequence using Grover's Gate (QiBAM)
 
