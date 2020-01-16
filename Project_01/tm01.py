@@ -75,6 +75,7 @@ for tick in range(0, sim_tick):
     # [{Head Position}, {Error}] = U_move [{Head Position}, {Move}]
     # Currently ignore: let Head position under/overflow. Trim bits
     # [{Turing Tape}] = U_write [{Head Position}, {W Head}]
+    # Reset RW Head
 
 # 3. Amplify target sequence using Grover's Gate (QiBAM)
 
