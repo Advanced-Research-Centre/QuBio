@@ -20,16 +20,17 @@ platform   = ql.Platform('platform_none', config_fn)
 
 sim_tick = 1        # Number of ticks of the FSM before abort
 
-head = [0, 1, 2]    # 0-MSB 2-LSB, [001] refers to Tape pos 1, not 4
-read = [3]
-tape = [4, 5, 6, 7, 8, 9]
-ancilla = [10]
+move = [0]
+head = [1, 2, 3]    # 0-MSB 2-LSB, [001] refers to Tape pos 1, not 4
+read = [4]
+tape = [5, 6, 7, 8, 9, 10]
+ancilla = [11]
+test = [12, 13, 14, 15]
 
-circ_width = len(head+read+tape+ancilla)
+circ_width = len(move+head+read+tape+ancilla+test)
 
 p = ql.Program('aritra', platform, circ_width)
 
-k_init = ql.Kernel("init", platform, circ_width)
 # 1. Initialize
 #   Tape to all symbol 0
 #   Current Tape Head to 0
@@ -38,15 +39,28 @@ k_init = ql.Kernel("init", platform, circ_width)
 #   Write Head to position 0
 #   Current Machine State to state 0
 #   FSM to equal superposition of all FSMs
+k_init = ql.Kernel("init", platform, circ_width)
 tm.U_init(k_init,tape,head)
 
-k_read = ql.Kernel("read", platform, circ_width)
+p.add_kernel(k_init)
+
 # 2. Run machine for n-iterations:
+#   {q_read} << U_read({q_head, q_tape})
+k_read = ql.Kernel("read", platform, circ_width)
+tm.U_read(k_read, read, head, tape, ancilla)
+#   {q_write, q_state, q_move} << U_fsm({q_read, q_state, q_fsm})
+tm.U_fsm()
+#   {q_tape} << U_write({q_head, q_write})                              
+tm.U_write()
+#   {q_head, q_err} << U_move({q_head, q_move})     Currently ignore Head position under/overflow. Trim bits                  
+k_move = ql.Kernel("move", platform, circ_width)
+tm.U_move(k_move, test)    
+
 for tick in range(0, sim_tick):
-    tm.U_read(k_read,read,head,tape,ancilla)    # {q_read} << U_read({q_head, q_tape})
-    tm.U_fsm()                                  # {q_write, q_state, q_move} << U_fsm({q_read, q_state, q_fsm})
-    tm.U_write()                                # {q_tape} << U_write({q_head, q_write})
-    tm.U_move()                                 # {q_head, q_err} << U_move({q_head, q_move})   
+    p.add_kernel(k_read)
+    # p.add_kernel(k_fsm)
+    # p.add_kernel(k_write)
+    p.add_kernel(k_move)
 
 # 3. Amplify target sequence using Grover's Gate (QiBAM)
 
@@ -56,8 +70,6 @@ for tick in range(0, sim_tick):
  
 # 5. Choose shortest FSM that doesn't halt or throws error as Kolmogorov Complexity of target DNA sequence
 	
-p.add_kernel(k_init)
-p.add_kernel(k_read)
 p.compile()
 
 qasm = p.qasm()
