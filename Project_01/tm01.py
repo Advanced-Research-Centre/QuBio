@@ -1,75 +1,85 @@
 import os
 from math import log2
 from openql import openql as ql
+import qxelarator
 
 # rootDir = os.path.dirname(os.path.realpath(__file__))
 curdir = os.path.dirname(__file__)
-# output_dir = os.path.join(curdir, 'qasm')
+output_dir = os.path.join(curdir, 'qasm')
 
-# ql.set_option('output_dir', output_dir)
-# ql.set_option('write_qasm_files', 'yes')
+ql.set_option('output_dir', output_dir)
+ql.set_option('write_qasm_files', 'yes')
 # ql.set_option('optimize', 'no')
 # ql.set_option('scheduler', 'ASAP')
 # ql.set_option('log_level', 'LOG_INFO')
 
 config_fn  = os.path.join(curdir, 'config_qx.json')
 platform   = ql.Platform('platform_none', config_fn)
-num_qubits = 2
 
 sim_tick = 1        # Number of ticks of the FSM before abort
 
-asz = 2             # Alphabet size: Binary (0 is blank/default)
-csz = int(log2(asz))# Character symbol size
-tsz = 8             # Turing Tape size
-ssz = 4             # State size (Halt is all 1 state, Initial state is all 0)
+# asz = 2             # Alphabet size: Binary (0 is blank/default)
+# csz = int(log2(asz))# Character symbol size
+# tsz = 8             # Turing Tape size
+# ssz = 4             # State size (Halt is all 1 state, Initial state is all 0)
 
-# fsm = ql.Unitary('u_fsm', [ complex(0.0, 0.0), complex(1.0, 0.0),
-#                             complex(1.0, 0.0), complex(0.0, 0.0)])                # specify unitary matrix
-# fsm.decompose()                                                                # decompose
-    
-t_now = csz             # Read-Write Tape character
-# h_now = log2(tsz)     # Head position (Binary coded)
-h_now = tsz             # Head position (1-Hot coded)
-# s_now = log2(ssz)     # Current state (Binary coded)
-s_now = ssz             # Current state (1-Hot coded)
+# t_now = csz             # Read-Write Tape character
+# # h_now = log2(tsz)     # Head position (Binary coded)
+# h_now = tsz             # Head position (1-Hot coded)
+# # s_now = log2(ssz)     # Current state (Binary coded)
+# s_now = ssz             # Current state (1-Hot coded)
 
-flags = 1               # Tape under/overflow
+# flags = 1               # Tape under/overflow
 
-q_tt = 0                            # Starting qubit id of Turing Tape
-q_rw = q_tt + tsz*csz               # Starting qubit id of R/W Head
-q_hp = q_rw + t_now                 # Starting qubit id of Head position
-q_cs = q_hp + h_now                 # Starting qubit id of Current State
-q_sm = q_cs + s_now                 # Starting qubit id of State Machine
-q_fg = q_sm + ssz                   # Starting qubit id of Flags
+# q_tt = 0                            # Starting qubit id of Turing Tape
+# q_rw = q_tt + tsz*csz               # Starting qubit id of R/W Head
+# q_hp = q_rw + t_now                 # Starting qubit id of Head position
+# q_cs = q_hp + h_now                 # Starting qubit id of Current State
+# q_sm = q_cs + s_now                 # Starting qubit id of State Machine
+# q_fg = q_sm + ssz                   # Starting qubit id of Flags
 
-qbi = [q_tt, q_rw, q_hp, q_cs, q_sm, q_fg, q_fg+flags] # LSQ -- MSQ
-circ_width = qbi[-1]
+# qbi = [q_tt, q_rw, q_hp, q_cs, q_sm, q_fg, q_fg+flags] # LSQ -- MSQ
+# circ_width = qbi[-1]
+
+head = [0, 1, 2]
+read = [3]
+tape = [4, 5, 6, 7, 8, 9]
+
+circ_width = len(head+read+tape)
 
 p = ql.Program('aritra', platform, circ_width)
 k = ql.Kernel("min_kernel", platform, circ_width)
 
-# 1. Initialize 
+# 1. Initialize
 #     Tape to all symbol 0
-#     Current Tape Head to 0
-#     Flag to 0
-for i in range(qbi[0], qbi[6]):
+for i in tape:
     k.gate('prepz', [i])
-#     R/W Head to position 0
-k.gate('x', [qbi[2]])
+k.gate('x',[4]) # Test Read Head
+#     Current Tape Head to 0
+for i in head:
+    k.gate('prepz', [i])
+#     Flag to 0
+#     Read Head to position 0
+for i in read:
+    k.gate('prepz', [i])
+#    Write Head to position 0
 #     Current Machine State to state 0
-k.gate('x', [qbi[3]])
 #     FSM to equal superposition of all FSMs [TBD]
-for i in range(qbi[4], qbi[5]):
-    k.gate('h', [i])
 
-          
 
 # 2. Run machine for n-iterations:
 for tick in range(0, sim_tick):
+    # {q_read} << U_read({q_head, q_tape})
+    for cell in range(0,len(tape)):
+        print(format(cell, '#05b'), tape[cell])
+        # multi control X
+        
+
+
     # [{R Head}] = Toffoli [{Head Position}, {Turing Tape}]
-    for i in range(0,tsz):
-        for j in range(0,csz):
-            k.gate('toffoli', [qbi[0] + i*csz + j, qbi[2] + i , qbi[1] + j])
+    # for i in range(0,tsz):
+    #     for j in range(0,csz):
+    #         k.gate('toffoli', [qbi[0] + i*csz + j, qbi[2] + i , qbi[1] + j])
     # [{W Head}, {Machine State}, {Move}] = U_fsm [{R Head}, {Machine State}, {FSM}]
     # k.gate(fsm, [q_rw, q_hp, q_cs, q_sm])  
     # [{Head Position}, {Error}] = U_move [{Head Position}, {Move}]
@@ -90,3 +100,12 @@ p.compile()
 
 qasm = p.qasm()
 print(qasm)
+
+qx = qxelarator.QX()
+qx.set(output_dir+'/aritra.qasm')
+
+qx.execute()
+isv = qx.get_state()
+print(isv)
+# res = qx.get_measurement_outcome(0)
+# print(res)
