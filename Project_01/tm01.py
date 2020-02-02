@@ -25,9 +25,11 @@ head = [1, 2, 3]    # 0-MSB 2-LSB, [001] refers to Tape pos 1, not 4
 read = [4]
 tape = [5, 6, 7, 8, 9, 10]
 ancilla = [11]
-test = [12, 13, 14, 15]
+test = [12, 13, 14]
+test1 = [15, 16, 17]
+anc = [18, 19, 20]
 
-circ_width = len(move+head+read+tape+ancilla+test)
+circ_width = len(move+head+read+tape+ancilla+test+test1+anc)
 
 p = ql.Program('aritra', platform, circ_width)
 
@@ -42,7 +44,7 @@ p = ql.Program('aritra', platform, circ_width)
 k_init = ql.Kernel("init", platform, circ_width)
 tm.U_init(k_init,tape,head)
 
-p.add_kernel(k_init)
+# p.add_kernel(k_init)
 
 # 2. Run machine for n-iterations:
 #   {q_read} << U_read({q_head, q_tape})
@@ -54,10 +56,10 @@ tm.U_fsm()
 tm.U_write()
 #   {q_head, q_err} << U_move({q_head, q_move})     Currently ignore Head position under/overflow. Trim bits                  
 k_move = ql.Kernel("move", platform, circ_width)
-tm.U_move(k_move, test)    
+tm.U_move(k_move, move, test, test1, anc)    
 
 for tick in range(0, sim_tick):
-    p.add_kernel(k_read)
+    # p.add_kernel(k_read)
     # p.add_kernel(k_fsm)
     # p.add_kernel(k_write)
     p.add_kernel(k_move)
