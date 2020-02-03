@@ -9,7 +9,7 @@ def U_init(k,tape,head):
     k.gate('x',[head[2]]) # Test Read Head
 
 def U_read(k, read, head, tape, ancilla):
-    k.gate('prepz', read)   # Prepz measures superposed states... need to uncompute
+    # Reset read (prepz measures superposed states... need to uncompute)
     for cell in range(0, len(tape)):
         enc = format(cell, '#0'+str(len(head)+2)+'b')   # 2 for '0b' prefix
         for i in range(2, len(enc)):
@@ -25,8 +25,17 @@ def U_fsm():
     # k.gate(fsm, [q_rw, q_hp, q_cs, q_sm])  
     return
     
-def U_write():
-    # Reset RW Head
+def U_write(k, write, head, tape, ancilla):
+    # Reset write (prepz measures superposed states... need to uncompute)
+    for cell in range(0, len(tape)):
+        enc = format(cell, '#0'+str(len(head)+2)+'b')   # 2 for '0b' prefix
+        for i in range(2, len(enc)):
+            if(enc[i] == '0'):
+                k.gate('x', [head[i-2]])
+        qsdk.nCX(k, head+write, [tape[cell]], ancilla)
+        for i in range(2, len(enc)):
+            if(enc[i] == '0'):
+                k.gate('x', [head[i-2]])
     return
  
 def U_move(k, move, head, anc, test):

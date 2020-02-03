@@ -23,12 +23,13 @@ sim_tick = 1        # Number of ticks of the FSM before abort
 move = [0]
 head = [1, 2, 3]    # 0-MSB 2-LSB, [001] refers to Tape pos 1, not 4
 read = [4]
-tape = [5, 6, 7, 8, 9, 10]
-ancilla = [11]
-anc = [12, 13, 14]
-test = [15, 16, 17]
+write = [5]         # Can be MUXed with read?
+tape = [6, 7, 8, 9, 10, 11]
+ancilla = [12]
+anc = [13, 14, 15]
+test = [16, 17, 18]
 
-circ_width = len(move+head+read+tape+ancilla+anc+test)
+circ_width = len(move+head+read+write+tape+ancilla+anc+test)
 
 p = ql.Program('aritra', platform, circ_width)
 
@@ -52,7 +53,8 @@ tm.U_read(k_read, read, head, tape, ancilla)
 #   {q_write, q_state, q_move} << U_fsm({q_read, q_state, q_fsm})
 tm.U_fsm()
 #   {q_tape} << U_write({q_head, q_write})                              
-tm.U_write()
+k_write = ql.Kernel("write", platform, circ_width)
+tm.U_write(k_write, write, head, tape, ancilla)
 #   {q_head, q_err} << U_move({q_head, q_move})     Currently ignore Head position under/overflow. Trim bits                  
 k_move = ql.Kernel("move", platform, circ_width)
 tm.U_move(k_move, move, head, anc, test)    
@@ -60,8 +62,8 @@ tm.U_move(k_move, move, head, anc, test)
 for tick in range(0, sim_tick):
     # p.add_kernel(k_read)
     # p.add_kernel(k_fsm)
-    # p.add_kernel(k_write)
-    p.add_kernel(k_move)
+    p.add_kernel(k_write)
+    # p.add_kernel(k_move)
 
 # 3. Amplify target sequence using Grover's Gate (QiBAM)
 
