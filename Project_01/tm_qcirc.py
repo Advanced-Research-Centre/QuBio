@@ -21,8 +21,19 @@ def U_read(k, read, head, tape, ancilla):
                 k.gate('x', [head[i-2]])
     return
 
-def U_fsm(k, fsm, state, read, write, move):
-    print("TBD")
+def U_fsm(k, fsm, state, read, write, move, ancilla):
+    # Reset state_nxt (prepz measures superposed states... need to uncompute)
+    state_nxt = ancilla[1]
+    k.gate('x', [state[0]])                                             # If s == 0
+    k.gate('x', [read[0]])                                                  # If s == 0 && read == 0
+    qsdk.nCX(k, [state[0],fsm[0],read[0]], [state_nxt], [ancilla[0]])           # Update state
+    qsdk.nCX(k, [state[0],fsm[1],read[0]], write, [ancilla[0]])                 # Update write
+    qsdk.nCX(k, [state[0],fsm[2],read[0]], move, [ancilla[0]])                  # Update move
+    k.gate('x', [read[0]])                                                  # If s == 0 && read == 1
+    qsdk.nCX(k, [state[0],fsm[3],read[0]], [state_nxt], [ancilla[0]])           # Update state
+    qsdk.nCX(k, [state[0],fsm[4],read[0]], write, [ancilla[0]])                 # Update write
+    qsdk.nCX(k, [state[0],fsm[5],read[0]], move, [ancilla[0]])                  # Update move
+    k.gate('x', [state[0]])                                             # If s == 1 (no arrows)
     return
     
 def U_write(k, write, head, tape, ancilla):
