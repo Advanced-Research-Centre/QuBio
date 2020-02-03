@@ -15,14 +15,14 @@ def U_read(k, read, head, tape, ancilla):
         for i in range(2, len(enc)):
             if(enc[i] == '0'):
                 k.gate('x', [head[i-2]])
-        qsdk.nCX(k, head+[tape[cell]], read, ancilla)
+        qsdk.nCX(k, head+[tape[cell]], read, [ancilla[0]])
         for i in range(2, len(enc)):
             if(enc[i] == '0'):
                 k.gate('x', [head[i-2]])
     return
 
-def U_fsm():
-    # k.gate(fsm, [q_rw, q_hp, q_cs, q_sm])  
+def U_fsm(k, fsm, state, read, write, move):
+    print("TBD")
     return
     
 def U_write(k, write, head, tape, ancilla):
@@ -32,7 +32,7 @@ def U_write(k, write, head, tape, ancilla):
         for i in range(2, len(enc)):
             if(enc[i] == '0'):
                 k.gate('x', [head[i-2]])
-        qsdk.nCX(k, head+write, [tape[cell]], ancilla)
+        qsdk.nCX(k, head+write, [tape[cell]], [ancilla[0]])
         for i in range(2, len(enc)):
             if(enc[i] == '0'):
                 k.gate('x', [head[i-2]])
