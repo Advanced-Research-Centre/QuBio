@@ -50,17 +50,20 @@ circ_width = test[-1]+1
 p = ql.Program('aritra', platform, circ_width)
 
 # 1. Initialize
-#   Tape to all symbol 0
-#   Current Tape Head to 0
+#   FSM 					to equal superposition of all FSMs
+#   Current Machine State 	to state 0
+#   Move 					to direction 0
+#   Current Tape Head 		to position 0
+#   Read Head 				to symbol 0
+#   Write Head 				to symbol 0
+#   Tape 					to all symbol 0
 #   Flag to 0
-#   Read Head to position 0
-#   Write Head to position 0
-#   Current Machine State to state 0
-#   FSM to equal superposition of all FSMs
+#	Ancilla 				to 0
+#	Test 					to 0
 k_init = ql.Kernel("init", platform, circ_width)
-tm.U_init(k_init,tape,head)
+tm.U_init(k_init, circ_width, fsm, state, move, head, read, write, tape, ancilla, test) 
 
-# p.add_kernel(k_init)
+p.add_kernel(k_init)
 
 # 2. Run machine for n-iterations:
 #   {q_read} << U_read({q_head, q_tape})
@@ -77,10 +80,10 @@ k_move = ql.Kernel("move", platform, circ_width)
 tm.U_move(k_move, move, head, ancilla, test)    
 
 for tick in range(0, sim_tick):
-    # p.add_kernel(k_read)
+    p.add_kernel(k_read)
     p.add_kernel(k_fsm)
-    # p.add_kernel(k_write)
-    # p.add_kernel(k_move)
+    p.add_kernel(k_write)
+    p.add_kernel(k_move)
 
 # 3. Amplify target sequence using Grover's Gate (QiBAM)
 

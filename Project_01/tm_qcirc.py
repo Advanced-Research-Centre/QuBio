@@ -1,12 +1,18 @@
 import qsdk     # from qsdk import nCX
 
-def U_init(k,tape,head):
-    for i in tape:
-        k.gate('prepz', [i])
-    k.gate('x',[tape[1]]) # Test Read Head
-    for i in head:
-        k.gate('prepz', [i])
-    k.gate('x',[head[2]]) # Test Read Head
+def U_init(k, circ_width, fsm, state, move, head, read, write, tape, ancilla, test):
+    # for i in range(0,circ_width):     # Uncomment Later
+    #     k.gate('prepz', [i])          # Uncomment Later
+    # for i in fsm:                     # Uncomment Later     
+    #     k.gate('h', [i])              # Uncomment Later     
+    # k.gate('x',[tape[1]])   # Test Read Head
+    # k.gate('x',[head[2]])   # Test Read Head
+    k.gate('x',[fsm[0]])    # Test FSM
+    k.gate('x',[fsm[1]])    # Test FSM
+    k.gate('x',[fsm[2]])    # Test FSM
+    k.gate('x',[fsm[3]])    # Test FSM
+    k.gate('x',[fsm[4]])    # Test FSM
+    k.gate('x',[fsm[5]])    # Test FSM
 
 def U_read(k, read, head, tape, ancilla):
     # Reset read (prepz measures superposed states... need to uncompute)
@@ -49,17 +55,17 @@ def U_write(k, write, head, tape, ancilla):
                 k.gate('x', [head[i-2]])
     return
  
-def U_move(k, move, head, anc, test):
+def U_move(k, move, head, test, anc):
     # Prepz measures superposed states... need to uncompute
     # Last carry not accounted, All-ones overflows to All-zeros
 
-    k.gate('h',[head[0]])               # Test Move Head
-    k.gate('h',[head[1]])               # Test Move Head
-    k.gate('h',[head[2]])               # Test Move Head
-    k.gate('cnot',[head[0],test[0]])    # Test Move Head Association
-    k.gate('cnot',[head[1],test[1]])    # Test Move Head Association
-    k.gate('cnot',[head[2],test[2]])    # Test Move Head Association
-    k.gate('x', move)                   # Test Move Right
+    # k.gate('h',[head[0]])               # Test Move Head
+    # k.gate('h',[head[1]])               # Test Move Head
+    # k.gate('h',[head[2]])               # Test Move Head
+    # k.gate('cnot',[head[0],test[0]])    # Test Move Head Association
+    # k.gate('cnot',[head[1],test[1]])    # Test Move Head Association
+    # k.gate('cnot',[head[2],test[2]])    # Test Move Head Association
+    # k.gate('x', move)                   # Test Move Right
 
     # Quantum Adder
     # TBD: Generalized Head size
@@ -82,8 +88,8 @@ def U_move(k, move, head, anc, test):
     #  (+0.353553,+0) |000000 111 00000000 000 1> +
 
     k.gate('x', move)
-
     # TBD: Quantum Subtractor
+    k.gate('x', move)
 
     # q_carry(k, move[0], head[0], anc[0], anc[1])
     # q_carry(k, anc[2], head[1], anc[1], head1[2]) 
