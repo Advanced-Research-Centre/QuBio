@@ -5,6 +5,8 @@ import qxelarator
 
 import tm_qcirc as tm
 
+ISV_EN = True
+
 # rootDir = os.path.dirname(os.path.realpath(__file__))
 curdir = os.path.dirname(__file__)
 output_dir = os.path.join(curdir, 'qasm')
@@ -28,12 +30,14 @@ transitions = (ssz-1)*asz   # Number of transition arrows in FSM
 machines = (ssz * asz * 2**tdim)**transitions
 print("Number of "+str(asz)+"-symbol "+str(ssz)+"-state Turing Machines: "+str(machines))
 
-dsz = transitions*(ceil(log2(ssz))+csz+tdim)    # Description size
+senc = ceil(log2(ssz))                          # State encoding size
+dsz = transitions*(senc+csz+tdim)               # Description size
 tsz = dsz                                       # Turing Tape size (same as dsz to test self-replication)
 hsz = ceil(log2(tsz))                           # Head size
+tlog = (sim_tick+1) * senc                      # Transition log
 
 fsm     = list(range(   0,              dsz                         ))
-state   = list(range(   fsm     [-1]+1, fsm     [-1]+1+     ceil(log2(ssz))    ))  # Current state (Binary coded)
+state   = list(range(   fsm     [-1]+1, fsm     [-1]+1+     tlog    ))  # States (Binary coded)
 move    = list(range(   state   [-1]+1, state   [-1]+1+     tdim    ))
 head    = list(range(   move    [-1]+1, move    [-1]+1+     hsz     ))  # Binary coded, 0-MSB 2-LSB, [001] refers to Tape pos 1, not 4
 read    = list(range(   head    [-1]+1, head    [-1]+1+     csz     ))
@@ -71,7 +75,7 @@ k_read = ql.Kernel("read", platform, circ_width)
 tm.U_read(k_read, read, head, tape, ancilla)
 #   {q_write, q_state, q_move} << U_fsm({q_read, q_state, q_fsm})
 k_fsm = ql.Kernel("fsm", platform, circ_width)
-tm.U_fsm(k_fsm, fsm, state, read, write, move, ancilla)
+tm.U_fsm(k_fsm, 0, fsm, state, read, write, move, ancilla)  # TBD: Generalize tick = 0, inside sim_tick loop
 #   {q_tape} << U_write({q_head, q_write})                              
 k_write = ql.Kernel("write", platform, circ_width)
 tm.U_write(k_write, write, head, tape, ancilla)
@@ -79,24 +83,38 @@ tm.U_write(k_write, write, head, tape, ancilla)
 k_move = ql.Kernel("move", platform, circ_width)
 tm.U_move(k_move, move, head, ancilla, test)    
 
+#   UNCOMPUTE
+# k_read = ql.Kernel("read", platform, circ_width)
+# tm.U_read(k_read, read, head, tape, ancilla)
+k_fsm_uc = ql.Kernel("fsm_uc", platform, circ_width)
+tm.U_fsm_UC(k_fsm_uc, 0, fsm, state, read, write, move, ancilla)  # TBD: Generalize tick = 0, inside sim_tick loop
+# k_write = ql.Kernel("write", platform, circ_width)
+# tm.U_write(k_write, write, head, tape, ancilla)
+# k_move = ql.Kernel("move", platform, circ_width)
+# tm.U_move(k_move, move, head, ancilla, test) 
+
 for tick in range(0, sim_tick):
     p.add_kernel(k_read)
     p.add_kernel(k_fsm)
     p.add_kernel(k_write)
     p.add_kernel(k_move)
+    p.add_kernel(k_fsm_uc)
 
 # 3. Amplify target sequence using Grover's Gate (QiBAM)
 
 # 4. Create histogram of modal FSMs
-# for i in range(0, circ_width):
-#     k_read.gate('measure', [i])
+if (not ISV_EN):
+    k_measure = ql.Kernel("measure", platform, circ_width)
+    for i in range(0, circ_width):
+        k_measure.gate('measure', [i])
+    p.add_kernel(k_measure)
  
 # 5. Choose shortest FSM that doesn't halt or throws error as Kolmogorov Complexity of target DNA sequence
 	
 p.compile()
 
-qasm = p.qasm()
-print(qasm)
+# qasm = p.qasm()
+# print(qasm)
 
 qx = qxelarator.QX()
 qx.set(output_dir+'/aritra.qasm')
