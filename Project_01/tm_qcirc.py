@@ -1,5 +1,7 @@
 import qsdk     # from qsdk import nCX
 
+DISP_EN = False
+
 def U_init(k, circ_width, fsm, state, move, head, read, write, tape, ancilla, test):
     # for i in range(0,circ_width):     # Uncomment Later
     #     k.gate('prepz', [i])          # Uncomment Later
@@ -13,6 +15,8 @@ def U_init(k, circ_width, fsm, state, move, head, read, write, tape, ancilla, te
     k.gate('x',[fsm[3]])    # Test FSM
     k.gate('x',[fsm[4]])    # Test FSM
     k.gate('x',[fsm[5]])    # Test FSM
+    if (DISP_EN): k.display()
+    return
 
 def U_read(k, read, head, tape, ancilla):
     # Reset read (prepz measures superposed states... need to uncompute)
@@ -25,6 +29,7 @@ def U_read(k, read, head, tape, ancilla):
         for i in range(2, len(enc)):
             if(enc[i] == '0'):
                 k.gate('x', [head[i-2]])
+    if (DISP_EN): k.display()
     return
 
 def U_fsm(k, tick, fsm, state, read, write, move, ancilla):
@@ -38,6 +43,7 @@ def U_fsm(k, tick, fsm, state, read, write, move, ancilla):
     qsdk.nCX(k, [state[tick],fsm[4],read[0]], write, [ancilla[0]])                 # Update write
     qsdk.nCX(k, [state[tick],fsm[5],read[0]], move, [ancilla[0]])                  # Update move
     k.gate('x', [state[tick]])                                             # If s == 1 (no arrows)
+    if (DISP_EN): k.display()
     return
 
 def U_fsm_UC(k, tick, fsm, state, read, write, move, ancilla):
@@ -51,6 +57,7 @@ def U_fsm_UC(k, tick, fsm, state, read, write, move, ancilla):
     qsdk.nCX(k, [state[tick],fsm[4],read[0]], write, [ancilla[0]])                 # Update write
     qsdk.nCX(k, [state[tick],fsm[5],read[0]], move, [ancilla[0]])                  # Update move
     k.gate('x', [state[tick]])                                             # If s == 1 (no arrows)
+    k.display()
     return
     
 def U_write(k, write, head, tape, ancilla):
@@ -64,11 +71,13 @@ def U_write(k, write, head, tape, ancilla):
         for i in range(2, len(enc)):
             if(enc[i] == '0'):
                 k.gate('x', [head[i-2]])
+    if (DISP_EN): k.display()
     return
  
 def U_move(k, move, head, test, anc):
     # Prepz measures superposed states... need to uncompute
     # Last carry not accounted, All-ones overflows to All-zeros
+    # Currently ignore Head position under/overflow. Trim bits   
 
     # k.gate('h',[head[0]])               # Test Move Head
     # k.gate('h',[head[1]])               # Test Move Head
@@ -109,7 +118,7 @@ def U_move(k, move, head, test, anc):
     # q_rcarry(k, move[0], head[0], anc[0], anc[1])
     # q_sum(k, move[0], head[0], anc[0])
 
-    
+    if (DISP_EN): k.display()
     return
 
 def q_sum(k, a, b, s):

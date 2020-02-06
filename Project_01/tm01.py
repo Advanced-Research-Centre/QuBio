@@ -20,7 +20,7 @@ ql.set_option('write_qasm_files', 'yes')
 config_fn  = os.path.join(curdir, 'config_qx.json')
 platform   = ql.Platform('platform_none', config_fn)
 
-sim_tick = 1                # Number of ticks of the FSM before abort
+sim_tick = 2                # Number of ticks of the FSM before abort
 
 asz = 2                     # Alphabet size: Binary (0 is blank/default)
 csz = ceil(log2(asz))       # Character symbol size
@@ -66,39 +66,39 @@ p = ql.Program('aritra', platform, circ_width)
 #	Test 					to 0
 k_init = ql.Kernel("init", platform, circ_width)
 tm.U_init(k_init, circ_width, fsm, state, move, head, read, write, tape, ancilla, test) 
-
 p.add_kernel(k_init)
 
 # 2. Run machine for n-iterations:
-#   {q_read} << U_read({q_head, q_tape})
-k_read = ql.Kernel("read", platform, circ_width)
-tm.U_read(k_read, read, head, tape, ancilla)
-#   {q_write, q_state, q_move} << U_fsm({q_read, q_state, q_fsm})
-k_fsm = ql.Kernel("fsm", platform, circ_width)
-tm.U_fsm(k_fsm, 0, fsm, state, read, write, move, ancilla)  # TBD: Generalize tick = 0, inside sim_tick loop
-#   {q_tape} << U_write({q_head, q_write})                              
-k_write = ql.Kernel("write", platform, circ_width)
-tm.U_write(k_write, write, head, tape, ancilla)
-#   {q_head, q_err} << U_move({q_head, q_move})     Currently ignore Head position under/overflow. Trim bits                  
-k_move = ql.Kernel("move", platform, circ_width)
-tm.U_move(k_move, move, head, ancilla, test)    
-
-#   UNCOMPUTE
-# k_read = ql.Kernel("read", platform, circ_width)
-# tm.U_read(k_read, read, head, tape, ancilla)
-k_fsm_uc = ql.Kernel("fsm_uc", platform, circ_width)
-tm.U_fsm_UC(k_fsm_uc, 0, fsm, state, read, write, move, ancilla)  # TBD: Generalize tick = 0, inside sim_tick loop
-# k_write = ql.Kernel("write", platform, circ_width)
-# tm.U_write(k_write, write, head, tape, ancilla)
-# k_move = ql.Kernel("move", platform, circ_width)
-# tm.U_move(k_move, move, head, ancilla, test) 
-
 for tick in range(0, sim_tick):
+    #   {read} << U_read({head, tape})
+    k_read = ql.Kernel("read"+str(tick), platform, circ_width)
+    tm.U_read(k_read, read, head, tape, ancilla)
     p.add_kernel(k_read)
+    #   {write, state, move} << U_fsm({read, state, fsm})
+    k_fsm = ql.Kernel("fsm"+str(tick), platform, circ_width)
+    tm.U_fsm(k_fsm, tick, fsm, state, read, write, move, ancilla)
     p.add_kernel(k_fsm)
+    del k_fsm
+    #   {tape} << U_write({head, write})           
+    k_write = ql.Kernel("write"+str(tick), platform, circ_width)
+    tm.U_write(k_write, write, head, tape, ancilla)
     p.add_kernel(k_write)
+    #   {head, err} << U_move({head, move})    
+    k_move = ql.Kernel("move"+str(tick), platform, circ_width)
+    tm.U_move(k_move, move, head, ancilla, test) 
     p.add_kernel(k_move)
+
+    #   UNCOMPUTE
+    # k_read = ql.Kernel("read", platform, circ_width)
+    # tm.U_read(k_read, read, head, tape, ancilla)
+    k_fsm_uc = ql.Kernel("fsm_uc"+str(tick), platform, circ_width)
+    tm.U_fsm_UC(k_fsm_uc, tick, fsm, state, read, write, move, ancilla)  # TBD: Generalize tick = 0, inside sim_tick loop
     p.add_kernel(k_fsm_uc)
+    del k_fsm_uc
+    # k_write = ql.Kernel("write", platform, circ_width)
+    # tm.U_write(k_write, write, head, tape, ancilla)
+    # k_move = ql.Kernel("move", platform, circ_width)
+    # tm.U_move(k_move, move, head, ancilla, test) 
 
 # 3. Amplify target sequence using Grover's Gate (QiBAM)
 
