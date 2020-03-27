@@ -67,14 +67,28 @@ for i in univ_dist:
 	if i == univ_dist[i]:
 		print(i,end=',')
 
+algo_prob = {} 
+for s in univ_dist.values(): 
+	if (s in algo_prob): 
+		algo_prob[s] += 1
+	else: 
+		algo_prob[s] = 1
+
+print("\nUniversal distribution:")
+for key in sorted(algo_prob.keys()) :
+	print ("% d : % f"%(key, algo_prob[key]/num_tm)) 
+
 import numpy as np
 import matplotlib.pyplot as plt
 plt.plot(univ_dist.keys(), univ_dist.values(), 1, color='g')
 
-print("\nUniversal distribution: ")
+print("\nTM tape output values: ")
 plt.show()
 
 
+
+# for key, value in algo_prob.items(): 
+# 	print ("% d : % d"%(key, value)) 
 
 
 # for i in output_tapes:
