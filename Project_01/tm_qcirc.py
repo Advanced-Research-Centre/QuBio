@@ -1,12 +1,16 @@
 import qsdk     # from qsdk import nCX
 
-DISP_EN = False
+DISP_EN = True
 
 def U_init(k, circ_width, fsm, state, move, head, read, write, tape, ancilla, test):
-    # for i in range(0,circ_width):     # Uncomment Later
-    #     k.gate('prepz', [i])          # Uncomment Later
-    # for i in fsm:                     # Uncomment Later     
-    #     k.gate('h', [i])              # Uncomment Later     
+    for i in range(0,circ_width):
+        k.gate('prepz', [i])
+    for i in fsm:                  
+        k.gate('h', [i])
+    if (DISP_EN): k.display()
+    return
+
+def U_init_test(k, circ_width, fsm, state, move, head, read, write, tape, ancilla, test):   
     # k.gate('x',[tape[1]])   # Test Read Head
     # k.gate('x',[head[2]])   # Test Read Head
     k.gate('x',[fsm[0]])    # Test FSM
