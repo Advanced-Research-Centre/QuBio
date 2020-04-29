@@ -1,6 +1,6 @@
 import qsdk     # from qsdk import nCX
 
-DISP_EN = True
+DISP_EN = False
 
 def U_init(k, circ_width, fsm, state, move, head, read, write, tape, ancilla, test):
     for i in range(0,circ_width):
@@ -78,100 +78,128 @@ def U_write(k, write, head, tape, ancilla):
     if (DISP_EN): k.display()
     return
  
-def U_move(k, move, head, test, anc):
-    # Prepz measures superposed states... need to uncompute
-    # Last carry not accounted, All-ones overflows to All-zeros
-    # Currently ignore Head position under/overflow. Trim bits   
+def U_move(k, move, head, anc):
+    # Increment/Decrement using Adder
 
-    # k.gate('h',[head[0]])               # Test Move Head
-    # k.gate('h',[head[1]])               # Test Move Head
-    # k.gate('h',[head[2]])               # Test Move Head
-    # k.gate('cnot',[head[0],test[0]])    # Test Move Head Association
-    # k.gate('cnot',[head[1],test[1]])    # Test Move Head Association
-    # k.gate('cnot',[head[2],test[2]])    # Test Move Head Association
-    # k.gate('x', move)                   # Test Move Right
+    reg_a = move
+    reg_a.extend([-1]*(len(head)-len(move)))
+    
+    reg_b = head
+    
+    reg_c = [-1]        # No initial carry
+    reg_c.extend(anc)
+    reg_c.append(-1)    # Ignore Head position under/overflow. Trim bits. Last carry not accounted, All-ones overflows to All-zeros
+
+    def q_carry(k, q0, q1, q2, q3):
+        if (q1 != -1 and q2 != -1 and q3 != -1):    k.gate('toffoli', [q1, q2, q3])
+        if (q1 != -1 and q2 != -1):                 k.gate('cnot', [q1, q2])
+        if (q0 != -1 and q2 != -1 and q3 != -1):    k.gate('toffoli', [q0, q2, q3])
+    def q_mid(k, q0, q1):
+        if (q0 != -1 and q1 != -1):                 k.gate('cnot', [q0, q1])
+    def q_sum(k, q0, q1, q2):
+        if (q0 != -1 and q2 != -1):                 k.gate('cnot', [q0, q2])
+        if (q1 != -1 and q2 != -1):                 k.gate('cnot', [q1, q2])
+    def q_rcarry(k, q0, q1, q2, q3):
+        if (q0 != -1 and q2 != -1 and q3 != -1):    k.gate('toffoli', [q0, q2, q3])
+        if (q1 != -1 and q2 != -1):                 k.gate('cnot', [q1, q2])
+        if (q1 != -1 and q2 != -1 and q3 != -1):    k.gate('toffoli', [q1, q2, q3])
 
     # Quantum Adder
-    # TBD: Generalized Head size
+    for i in range(0,len(head)):
+        q_carry(k,reg_c[i],reg_a[i],reg_b[i],reg_c[i+1])
+    q_mid(k,reg_a[i],reg_b[i])
+    q_sum(k,reg_c[i],reg_a[i],reg_b[i])
+    for i in range(len(head)-2,-1,-1):
+        q_rcarry(k,reg_c[i],reg_a[i],reg_b[i],reg_c[i+1])
+        q_sum(k,reg_c[i],reg_a[i],reg_b[i])
 
-    # Simplified Circuit for 1-bit Move and no initial carry
-    q_carry0(k, move[0], head[0],         anc[0]) # no c0
-    k.gate('toffoli', [anc[0], head[1], anc[1]])  # no a1
-    k.gate('cnot',[anc[1],head[2]])
-    k.gate('toffoli', [anc[0], head[1], anc[1]])  # no a1 rcarry
-    k.gate('cnot',[anc[0],head[1]])
-    q_rcarry0(k, move[0], head[0],         anc[0]) # no c0
-    q_sum0(k, move[0], head[0])
-    #  (+0.353553,+0) |000000 000 00000000 001 1> +
-    #  (+0.353553,+0) |000000 001 00000000 010 1> +
-    #  (+0.353553,+0) |000000 010 00000000 011 1> +
-    #  (+0.353553,+0) |000000 011 00000000 100 1> +
-    #  (+0.353553,+0) |000000 100 00000000 101 1> +
-    #  (+0.353553,+0) |000000 101 00000000 110 1> +
-    #  (+0.353553,+0) |000000 110 00000000 111 1> +
-    #  (+0.353553,+0) |000000 111 00000000 000 1> +
-
-    k.gate('x', move)
-    # TBD: Quantum Subtractor
-    k.gate('x', move)
-
-    # q_carry(k, move[0], head[0], anc[0], anc[1])
-    # q_carry(k, anc[2], head[1], anc[1], head1[2]) 
-    # k.gate('cnot', [anc[2], head[1]])
-    # q_sum(k, anc[2], head[1], anc[1])
-    # q_rcarry(k, move[0], head[0], anc[0], anc[1])
-    # q_sum(k, move[0], head[0], anc[0])
+    k.gate('x', [reg_a[0]])
+    # Quantum Subtractor
+    for i in range(0,len(head)-1):
+        q_sum(k,reg_c[i],reg_a[i],reg_b[i])
+        q_carry(k,reg_c[i],reg_a[i],reg_b[i],reg_c[i+1])
+    q_sum(k,reg_c[i+1],reg_a[i+1],reg_b[i+1])
+    q_mid(k,reg_a[i+1],reg_b[i+1])
+    for i in range(len(head)-2,-1,-1):
+        q_rcarry(k,reg_c[i],reg_a[i],reg_b[i],reg_c[i+1])
+    k.gate('x', [reg_a[0]])
 
     if (DISP_EN): k.display()
     return
 
-def q_sum(k, a, b, s):
-    k.gate('cnot', [s, b])
-    k.gate('cnot', [a, b])
-    return
+import os
+from openql import openql as ql
+import qxelarator
 
-def q_carry(k, a, b, c0, c1):
-    k.gate('toffoli', [a, b, c1])
-    k.gate('cnot', [a, b])
-    k.gate('toffoli', [b, c0, c1])
-    return
+def unit_tests():
 
-def q_carry1(k, b, c0, c1):
-    k.gate('toffoli', [b, c0, c1])
-    return
+    curdir = os.path.dirname(__file__)
+    output_dir = os.path.join(curdir, 'qasm')
 
-def q_rcarry(k, a, b, c0, c1):
-    k.gate('toffoli', [b, c0, c1])
-    k.gate('cnot', [a, b])
-    k.gate('toffoli', [a, b, c1])
-    return
+    ql.set_option('output_dir', output_dir)
+    ql.set_option('write_qasm_files', 'yes')
 
-def q_sum0(k, a, b):
-    k.gate('cnot', [a, b])
-    return
+    config_fn  = os.path.join(curdir, 'config_qx.json')
+    platform   = ql.Platform('platform_none', config_fn)
 
-def q_carry0(k, a, b, c1):
-    k.gate('toffoli', [a, b, c1])
-    k.gate('cnot', [a, b])
-    return
+    move = [0]          # Addend: 1-bit Move
+    head = [1,2,3,4]    # Augend: 4-bit Head 
+    anc = [5,6,7]       # Carry: uncomputed ancilla
+    test = [8,9,10,11]
 
-def q_rcarry0(k, a, b, c1):
-    k.gate('cnot', [a, b])
-    k.gate('toffoli', [a, b, c1])
-    return
+    circ_width = len(move) + len(head) + len(anc) + len(test)
 
-# k.gate('h',[fa[0]])
-# k.gate('h',[fa[1]])
-# q_fa(k, fa[0], fa[1], fa[2], fa[3])     # Quantum Full-Adder
-def q_fa(k, a, b, s, c):
-    k.gate('toffoli', [a, b, c])
-    k.gate('cnot', [a, b])
-    k.gate('toffoli', [b, s, c])
-    k.gate('cnot', [b, s])
-    k.gate('cnot', [a, b])
+    p = ql.Program('aritra', platform, circ_width)
+    k_move = ql.Kernel("move", platform, circ_width)
 
-def q_ha(k, a, b, c):
-    k.gate('toffoli', [a, b, c])    # c - carry
-    k.gate('cnot', [a, b])          # b - sum
-    return
+    # Test using full superposition of head, both inc/dec and association to initial state
+    for i in range(0,len(head)):
+        k_move.gate('h',[head[i]])
+        k_move.gate('cnot',[head[i],test[i]]) 
+    k_move.gate('h', [move[0]])
 
+    U_move(k_move, move, head, anc) 
+
+    p.add_kernel(k_move)
+    p.compile()
+    print(p.qasm())
+    qx = qxelarator.QX()
+    qx.set(output_dir+'/aritra.qasm')
+    qx.execute()
+    isv = qx.get_state()
+    print(isv)
+
+    #  (+0.176777,+0) | 0000    000     0001    1> +
+    #  (+0.176777,+0) | 0000    000     1111    0> +
+    #  (+0.176777,+0) | 0001    000     0000    0> +
+    #  (+0.176777,+0) | 0001    000     0010    1> +
+    #  (+0.176777,+0) | 0010    000     0001    0> +
+    #  (+0.176777,+0) | 0010    000     0011    1> +
+    #  (+0.176777,+0) | 0011    000     0010    0> +
+    #  (+0.176777,+0) | 0011    000     0100    1> +
+    #  (+0.176777,+0) | 0100    000     0011    0> +
+    #  (+0.176777,+0) | 0100    000     0101    1> +
+    #  (+0.176777,+0) | 0101    000     0100    0> +
+    #  (+0.176777,+0) | 0101    000     0110    1> +
+    #  (+0.176777,+0) | 0110    000     0101    0> +
+    #  (+0.176777,+0) | 0110    000     0111    1> +
+    #  (+0.176777,+0) | 0111    000     0110    0> +
+    #  (+0.176777,+0) | 0111    000     1000    1> +
+    #  (+0.176777,+0) | 1000    000     0111    0> +
+    #  (+0.176777,+0) | 1000    000     1001    1> +
+    #  (+0.176777,+0) | 1001    000     1000    0> +
+    #  (+0.176777,+0) | 1001    000     1010    1> +
+    #  (+0.176777,+0) | 1010    000     1001    0> +
+    #  (+0.176777,+0) | 1010    000     1011    1> +
+    #  (+0.176777,+0) | 1011    000     1010    0> +
+    #  (+0.176777,+0) | 1011    000     1100    1> +
+    #  (+0.176777,+0) | 1100    000     1011    0> +
+    #  (+0.176777,+0) | 1100    000     1101    1> +
+    #  (+0.176777,+0) | 1101    000     1100    0> +
+    #  (+0.176777,+0) | 1101    000     1110    1> +
+    #  (+0.176777,+0) | 1110    000     1101    0> +
+    #  (+0.176777,+0) | 1110    000     1111    1> +
+    #  (+0.176777,+0) | 1111    000     0000    1> +
+    #  (+0.176777,+0) | 1111    000     1110    0> +
+
+unit_tests()
