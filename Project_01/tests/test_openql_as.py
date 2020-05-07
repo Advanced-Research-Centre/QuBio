@@ -29,3 +29,11 @@ p.compile()
 
 qasm = p.qasm()
 print(qasm)
+
+# import qxelarator
+
+# qx = qxelarator.QX()
+# qx.set(output_dir+'/aritra.qasm')
+# qx.execute()
+# isv = qx.get_state()
+# print(isv)
