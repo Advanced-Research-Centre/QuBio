@@ -1,6 +1,5 @@
 """
-This Python script emulates our restricted TM for all 4096 cases for Case 2-2-1.
-This is the classical kernel we want to accelerate using the quantum algorithm.
+This Python script emulates our restricted TM for all 4096 cases for Case 2-2-1 over multiple cycles
 """
 
 import math
@@ -61,10 +60,6 @@ def UTM_AP(prog_set):
 		output_tapes[desc_num] = tape
 		univ_dist[desc_num] = int(tape.replace('o','0'),2)
 
-		# if desc_num == 1024:
-		# 	break
-
-	# print(univ_dist)
 	algo_prob = {} 
 	for s in univ_dist.values(): 
 		if (s in algo_prob): 
@@ -73,11 +68,6 @@ def UTM_AP(prog_set):
 			algo_prob[s] = 1
 
 	return algo_prob, univ_dist
-
-# print("Self-replicating machines: ",end='')
-# for i in univ_dist:
-# 	if i == univ_dist[i]:
-# 		print(i,end=',')
 
 prog_set_0 = list(range(0,num_tm))
 algo_prob_0, univ_dist_0 = UTM_AP(prog_set_0)
@@ -91,37 +81,51 @@ algo_prob_2, univ_dist_2 = UTM_AP(prog_set_2)
 prog_set_3 = list(algo_prob_2.keys())
 algo_prob_3, univ_dist_3 = UTM_AP(prog_set_3)
 
-print("~~~~ Algorithmic frequency ~~~~")
-print("Level 0:",algo_prob_0)
-print("Level 1:",algo_prob_1)
-print("Level 2:",algo_prob_2)
-print("Level 3:",algo_prob_3)
+# For utm221_nested.txt
 
-print("~~~~ Program-Data map ~~~~")
-print("Level 0:",univ_dist_0)
-print("Level 1:",univ_dist_1)
-print("Level 2:",univ_dist_2)
-print("Level 3:",univ_dist_3)
+# print("~~~~ Algorithmic frequency ~~~~")
+# print("Level 0:",algo_prob_0)
+# print("Level 1:",algo_prob_1)
+# print("Level 2:",algo_prob_2)
+# print("Level 3:",algo_prob_3)
 
-# print("\nUniversal distribution:")
-# for key in sorted(algo_prob.keys()) :
-# 	print ("% d : % d"%(key, algo_prob[key])) 
+# print("~~~~ Program-Data map ~~~~")
+# print("Level 0:",univ_dist_0)
+# print("Level 1:",univ_dist_1)
+# print("Level 2:",univ_dist_2)
+# print("Level 3:",univ_dist_3)
 
-# import numpy as np
-# import matplotlib.pyplot as plt
-# plt.plot(univ_dist.keys(), univ_dist.values(), 1, color='g')
+import networkx as nx
+from networkx.drawing.nx_agraph import to_agraph
 
-# print("\nTM tape output values: ")
-# plt.show()
+G0 = nx.MultiDiGraph()
+for p,d in univ_dist_0.items():
+	G0.add_edge(p,d)
+G0.graph['edge'] = {'arrowsize':'0.5','color':'red'}
+A0 = to_agraph(G0)
+A0.layout('circo') #neato,dot,twopi,circo,fdp,nop
+A0.draw('map0.svg') # hangs due to large number of nodes
 
+G1 = nx.MultiDiGraph()
+for p,d in univ_dist_1.items():
+	G1.add_edge(p,d)
+G1.graph['edge'] = {'arrowsize':'0.5','color':'red'}
+A1 = to_agraph(G1)
+A1.layout('circo')
+A1.draw('map1.svg')
 
+G2 = nx.MultiDiGraph()
+for p,d in univ_dist_2.items():
+	G2.add_edge(p,d)
+G2.graph['edge'] = {'arrowsize':'0.5','color':'blue'}
+A2 = to_agraph(G2)
+A2.layout('circo')
+A2.draw('map2.svg')
 
-# for key, value in algo_prob.items(): 
-# 	print ("% d : % d"%(key, value)) 
-
-
-# for i in output_tapes:
-
-# 	univ_dist[i] = output_tapes[i].replace('o','0')
-# 	print()
-    
+G3 = nx.MultiDiGraph()
+for p,d in univ_dist_3.items():
+	G3.add_edge(p,d)
+G3.graph['edge'] = {'arrowsize':'0.5','color':'magenta'}
+A3 = to_agraph(G3)
+A3.layout('circo')
+A3.draw('map3.svg')
