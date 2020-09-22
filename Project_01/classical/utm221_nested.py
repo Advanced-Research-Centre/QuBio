@@ -111,8 +111,8 @@ for p,d in univ_dist_1.items():
 	G1.add_edge(p,d)
 G1.graph['edge'] = {'arrowsize':'0.5','color':'red'}
 A1 = to_agraph(G1)
-A1.layout('circo')
-A1.draw('map1.svg')
+A1.layout('fdp')
+A1.draw('map19.svg')
 
 G2 = nx.MultiDiGraph()
 for p,d in univ_dist_2.items():
