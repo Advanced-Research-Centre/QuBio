@@ -98,34 +98,34 @@ algo_prob_3, univ_dist_3 = UTM_AP(prog_set_3)
 import networkx as nx
 from networkx.drawing.nx_agraph import to_agraph
 
-G0 = nx.MultiDiGraph()
-for p,d in univ_dist_0.items():
-	G0.add_edge(p,d)
-G0.graph['edge'] = {'arrowsize':'0.5','color':'red'}
-A0 = to_agraph(G0)
-A0.layout('circo') #neato,dot,twopi,circo,fdp,nop
-A0.draw('map0.svg') # hangs due to large number of nodes
+# G0 = nx.MultiDiGraph()
+# for p,d in univ_dist_0.items():
+# 	G0.add_edge(p,d)
+# G0.graph['edge'] = {'arrowsize':'0.5','color':'red'}
+# A0 = to_agraph(G0)
+# A0.layout('circo') #neato,dot,twopi,circo,fdp,nop
+# A0.draw('map0.svg') # hangs due to large number of nodes
 
-G1 = nx.MultiDiGraph()
-for p,d in univ_dist_1.items():
-	G1.add_edge(p,d)
-G1.graph['edge'] = {'arrowsize':'0.5','color':'red'}
-A1 = to_agraph(G1)
-A1.layout('fdp')
-A1.draw('map19.svg')
+# G1 = nx.MultiDiGraph()
+# for p,d in univ_dist_1.items():
+# 	G1.add_edge("P"+str(p),"P"+str(d))
+# G1.graph['edge'] = {'arrowsize':'0.5','color':'red'}
+# A1 = to_agraph(G1)
+# A1.layout('fdp')
+# A1.draw('mapP1.svg')
 
 G2 = nx.MultiDiGraph()
 for p,d in univ_dist_2.items():
-	G2.add_edge(p,d)
+	G2.add_edge("P"+str(p),"P"+str(d))
 G2.graph['edge'] = {'arrowsize':'0.5','color':'blue'}
 A2 = to_agraph(G2)
 A2.layout('circo')
-A2.draw('map2.svg')
+A2.draw('mapP2.svg')
 
 G3 = nx.MultiDiGraph()
 for p,d in univ_dist_3.items():
-	G3.add_edge(p,d)
+	G3.add_edge("P"+str(p),"P"+str(d))
 G3.graph['edge'] = {'arrowsize':'0.5','color':'magenta'}
 A3 = to_agraph(G3)
 A3.layout('circo')
-A3.draw('map3.svg')
+A3.draw('mapP3.svg')
